@@ -4,12 +4,21 @@ use sqlite::{open};
 use serde::{Deserialize};
 use chrono;
 
-
+//get user from db and sent a json 
 #[get("/users/{user_id}/{friend}")]
 async fn index(req: HttpRequest) -> Result<String, Error> {
     let name: String = req.match_info().get("friend").unwrap().to_string();
     let userid: i32 = req.match_info().get("user_id").unwrap().parse().unwrap();
+    let connection = open(":memory").unwrap();
+    
+    let query  = format!(" SELECT {} FROM TASK", name);
 
+
+    let qeury_result = connection.execute(query);
+    let query =  match &qeury_result{
+       Ok(format!(""[{:?}] : GET user {}, {}", chrono::offset::Local::now(),name, userid ")) => test,
+        None  =  Err(actix_web::error::ErrorBadRequest("Name is missing")),
+    } 
     
     println!("[{:?}] : GET user {}, {}", chrono::offset::Local::now(),name, userid );
 
@@ -26,6 +35,7 @@ struct Task {
     name: Option<String>,
 }
 
+//post a new user to the databases. 
 #[post("/submit")]
 async fn submit(info: web::Json<Task>) -> Result<String, Error> {
 
@@ -45,54 +55,15 @@ async fn submit(info: web::Json<Task>) -> Result<String, Error> {
     }
 }
 
-async fn manual_hello() -> impl Responder {
-    let connection = open(":memory").unwrap();
-    let query = "SELECT * FROM task";
-
-    connection
-    .iterate(query, |pairs| {
-        for &(name, value) in pairs.iter() {
-            println!("{} = {}", name, value.unwrap());
-        }
-        true
-    })
-    .unwrap();
-
-    return HttpResponse::Ok().body("Hey there!")
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // let connection = open(":memory").unwrap();
-
-    // let qeury = "   
-    //                             // CREATE TABLE task(name TEXT, timestap INTERGER);
-    //                             INSERT INTO task VALUES ('sleep', 80);
-    //                             INSERT INTO task VALUES ('eat' , 1);
-    //                             ";   
-
-    // connection.execute(qeury).unwrap();
-
-    // let query = "SELECT * FROM task";
-
-    // connection
-    // .iterate(query, |pairs| {
-    //     for &(name, value) in pairs.iter() {
-    //         println!("{} = {}", name, value.unwrap());
-    //     }
-    //     true
-    // })
-    // .unwrap();
-
-
 
     HttpServer::new(|| {
         App::new()
-            .route("/echo", web::post().to(echo))
             .service(hello)
             .service(submit)
             .service(index)
-            .route("/hey", web::get().to(manual_hello))
+         
     })
     .bind(("127.0.0.1", 8080))?
     .run()
